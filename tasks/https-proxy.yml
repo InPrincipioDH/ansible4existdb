@@ -1,0 +1,81 @@
+#####
+## Install and configure reverse proxy and get certificate
+## Prerequesites:
+## - certbot needs an open default port to issue certification
+## - make sure your exist-db is running on its http port before using this part of the setup
+#####
+- hosts: exist_servers
+  become: true
+  vars_files:
+    - ../vars.yml
+    - ../vault.yml
+
+  tasks:
+  - name: Install nginx and certbot
+    ansible.builtin.apt:
+      name:
+        - nginx
+        - certbot
+        - python3-certbot-nginx
+      state: present
+      update_cache: true
+
+  - name: Remove default config for nginx
+    file:
+      path: /etc/nginx/sites-enabled/default
+      state: absent
+
+  - name: Add nginx exist configuration
+    ansible.builtin.template:
+      src: ../templates/nginx-site.conf.j2
+      dest: /etc/nginx/sites-available/existdb.conf
+      mode: "0644"
+    notify:
+      - reload systemd
+      - reload nginx
+
+  - name: Enable nginx configuration
+    file:
+      src: /etc/nginx/sites-available/existdb.conf
+      dest: /etc/nginx/sites-enabled/existdb.conf
+      state: link
+    notify:
+      - reload nginx
+      - restart nginx
+
+  - name: Obtain certificate
+    tags:
+      - optional
+    become: true
+    ansible.builtin.command:
+      cmd: >
+        certbot --nginx
+        --non-interactive
+        --agree-tos
+        --force-renewal
+        --email {{ certificate_mail }}
+        -d {{ inventory_hostname }}
+    notify:
+      - reload systemd
+      - reload nginx
+
+  - name: Enable and start nginx
+    ansible.builtin.systemd_service:
+      name: nginx
+      enabled: true
+      state: started
+
+  handlers:
+    - name: reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: reload nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: reloaded
+
+    - name: restart nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: restarted

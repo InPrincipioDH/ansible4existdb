@@ -1,0 +1,146 @@
+########
+# exist-db installation and setup
+# - installing prerequesites
+# - creating and configuring folders
+# - setting up systemd unit
+# - optional: restore data from backup file
+######
+
+- hosts: exist_servers
+  become: true
+  vars_files:
+    - ../vars.yml
+    - ../vault.yml
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    # Prerequesite for exist-db
+    - name: Install Java
+      # We are using exist-db 6 with java 21, because it is the current LTS shipped with the OS.
+      # It is functional even if exist-db 6 expects java 8
+      ansible.builtin.apt:
+        name: openjdk-21-jre
+        state: present
+
+    - name: Create exist user group
+      ansible.builtin.group:
+        name: "{{ exist_group }}"
+        state: present
+
+    - name: Create exist user
+      ansible.builtin.user:
+        name: "{{ exist_user }}"
+        group: "{{ exist_group }}"
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+
+    - name: Create installation directory
+      ansible.builtin.file:
+        path: "{{ exist_install_dir }}"
+        state: directory
+        owner: "{{ exist_user }}"
+        group: "{{ exist_group }}"
+        mode: "0755"
+
+    - name: Download eXist distribution
+      ansible.builtin.get_url:
+        url: "{{ exist_dist_url }}"
+        dest: "{{ exist_archive }}"
+        mode: "0644"
+
+    - name: Install extraction tools
+      ansible.builtin.apt:
+        name:
+          - bzip2
+        state: present
+        update_cache: true
+
+    - name: Extract eXist distribution
+      ansible.builtin.unarchive:
+        src: "{{ exist_archive }}"
+        dest: "{{ exist_install_dir }}"
+        remote_src: true
+        creates: "{{ exist_home }}/bin/startup.sh"
+
+    - name: Set ownership for exist folder
+      ansible.builtin.file:
+        path: "{{ exist_home }}"
+        owner: "{{ exist_user }}"
+        group: "{{ exist_group }}"
+        recurse: true
+
+    # Prerequesite for ansible community.general.xml module below
+    - name: Install XML dependencies
+      ansible.builtin.apt:
+        name:
+          - python3-lxml
+        state: present
+#################
+# Exist Configuration and Setup
+#################
+    - name: configure data path
+      community.general.xml:
+        path: "{{ exist_home }}/etc/conf.xml"
+        xpath: /exist/db-connection
+        attribute: files
+        value: "{{ exist_datapath }}"
+
+    - name: configure recovery path
+      community.general.xml:
+        path: "{{ exist_home }}/etc/conf.xml"
+        xpath: /exist/db-connection/recovery
+        attribute: journal-dir
+        value: "{{ exist_datapath }}"
+
+    - name: Create data directory
+      ansible.builtin.file:
+        path: "{{ exist_datapath }}"
+        state: directory
+        owner: "{{ exist_user }}"
+        group: "{{ exist_group }}"
+        mode: "0755"
+
+    - name: Install exist-db as service
+      ansible.builtin.template:
+        src: ../templates/exist-db.service.j2
+        dest: /etc/systemd/system/existdb.service
+        mode: "0644"
+      notify:
+        - reload systemd
+        - restart exist
+
+    #make sure that the notified handlers run immediately
+    - meta: flush_handlers
+
+    - name: Enable and start existdb
+      ansible.builtin.systemd_service:
+        name: existdb
+        enabled: true
+        state: started
+
+    - name: Wait for HTTP endpoint
+      ansible.builtin.uri:
+        url: http://localhost:{{ exist_http_port }}/exist/
+        status_code: 200
+      register: exist_health
+      retries: 60
+      delay: 5
+      until: exist_health.status == 200
+
+    - include_tasks: restore_exist_backup.yml
+      when: exist_backup_url is defined
+
+  handlers:
+    - name: reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: restart exist
+      ansible.builtin.systemd_service:
+        name: existdb
+        state: restarted

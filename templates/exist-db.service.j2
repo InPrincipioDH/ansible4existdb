@@ -1,0 +1,22 @@
+[Unit]
+Description=eXist-db
+Documentation=https://exist-db.org/exist/apps/doc
+After=syslog.target
+
+[Service]
+Type=simple
+
+User={{ exist_user }}
+Group={{ exist_group }}
+
+WorkingDirectory={{ exist_home }}
+
+Environment="JAVA_OPTS=-XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxRAMPercentage=75.0"
+ExecStart={{ exist_home }}/bin/startup.sh
+ExecStop={{ exist_home }}/bin/shutdown.sh
+
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

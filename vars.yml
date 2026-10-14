@@ -1,0 +1,21 @@
+exist_version: "6.4.1"
+
+exist_user: "existdb"
+exist_group: "existdb"
+
+exist_install_dir: "/opt/exist"
+
+exist_dist_url: >-
+  https://github.com/eXist-db/exist/releases/download/eXist-{{ exist_version }}/exist-distribution-{{ exist_version }}-unix.tar.bz2
+
+exist_archive: "/tmp/exist-distribution-{{ exist_version }}.tar.bz2"
+
+exist_home: "{{ exist_install_dir }}/exist-distribution-{{ exist_version }}"
+
+exist_datapath: "/data/exist/"
+
+#exist_host: {{ ansible_host }}
+exist_http_port: 8080
+
+exist_backup_archive: "/tmp/exist-backup.zip"
+exist_backup_tmp: "/tmp/exist-backup"

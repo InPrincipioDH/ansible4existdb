@@ -1,0 +1,14 @@
+---
+#####
+## Prerequesites:
+## - ansible needs to be able to connect to the server via ssh
+## - server needs to be a known host (host key verification)
+#####
+all:
+  children:
+    exist_servers:
+      hosts:
+        ansible-test3.ka-scc-dem.vm.ka.bwcloud-os-instance.de: #replace with your hostname
+          ansible_host: 2001:7c0:2313:1:f816:3eff:fe88:b1b6 #replace with your IP or hostname
+          ansible_user: debian #replace with your ssh user
+          #ansible_password: #set if you want to ssh connect without key exchange

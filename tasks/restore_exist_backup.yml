@@ -1,0 +1,60 @@
+---
+- name: Download eXist backup
+  ansible.builtin.get_url:
+    url: "{{ exist_backup_url }}"
+    dest: "{{ exist_backup_archive }}"
+    mode: "0644"
+
+- name: Create backup tmp directory
+  ansible.builtin.file:
+    path: "{{ exist_backup_tmp }}"
+    state: directory
+    owner: "{{ exist_user }}"
+    group: "{{ exist_group }}"
+    mode: "0755"
+
+- name: Restore backup
+  ansible.builtin.command:
+    cmd: >
+      {{ exist_home }}/bin/backup.sh
+      -u {{ exist_admin_user }}
+      -P {{ exist_admin_pw }}
+      -ouri=xmldb:exist://localhost:{{ exist_http_port }}/exist/xmlrpc
+      -r {{ exist_backup_archive }}
+  register: restore_result
+  changed_when: true
+
+- name: Show restore output
+  ansible.builtin.debug:
+    var: restore_result.stdout_lines
+
+- name: Upload repair script
+  ansible.builtin.copy:
+    src: ../templates/repair-db.xql
+    dest: /tmp/repair-repository.xq
+    mode: "0644"
+
+- name: Repair package repository
+  ansible.builtin.command:
+    cmd: >
+      {{ exist_home }}/bin/client.sh
+      -u {{ exist_admin_user }}
+      -P {{ exist_admin_pw }}
+      -F /tmp/repair-repository.xq
+
+- name: Reactivate ediarum schedulers
+  uri:
+    url: "http://localhost:{{ exist_http_port }}/exist/apps/ediarum/scheduler.html"
+    method: POST
+    url_username: "{{ exist_admin_user }}"
+    url_password: "{{ exist_admin_pw }}"
+    force_basic_auth: true
+    follow_redirects: all
+    body_format: form-urlencoded
+    body:
+      action: activate-scheduler
+  changed_when: true
+  notify:
+    - restart exist
+
+- meta: flush_handlers

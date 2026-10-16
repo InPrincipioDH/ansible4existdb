@@ -19,3 +19,5 @@ exist_http_port: 8080
 
 exist_backup_archive: "/tmp/exist-backup.zip"
 exist_backup_tmp: "/tmp/exist-backup"
+
+ediarum_project_slug: bspp

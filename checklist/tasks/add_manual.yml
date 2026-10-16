@@ -1,0 +1,12 @@
+---
+- set_fact:
+    acceptance_results: >-
+      {{
+        acceptance_results + [
+          {
+            'name': test_name,
+            'status': '🟡 MANUAL',
+            'details': instruction
+          }
+        ]
+      }}

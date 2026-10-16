@@ -1,0 +1,472 @@
+---
+- name: Acceptance Tests
+  hosts: exist_servers
+  gather_facts: false
+  vars_files:
+    - ../vars.yml
+    - ../vault.yml
+  vars:
+    acceptance_results: []
+
+  tasks:
+
+    #####################
+    # TEST STAGE
+    ####################
+
+    ###
+    # Reachability Tests
+    ###
+
+    - name: Exist reachable
+      uri:
+        url: "http://localhost:{{ exist_http_port }}"
+        status_code: 200
+      register: exist_locally_reachable_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: Exist reachable
+        test_status: "{{ '✅ PASS' if not exist_locally_reachable_check.failed else '❌ FAIL' }}"
+        test_details: "{{ exist_locally_reachable_check.msg | default('OK') }}"
+
+    - name: Host reachable via proxy remotely
+      uri:
+        url: "http://{{ inventory_hostname }}/exist"
+        status_code: 200
+      delegate_to: localhost
+      register: proxy_reachable_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: Host reachable via proxy remotely
+        test_status: "{{ '✅ PASS' if not proxy_reachable_check.failed else '❌ FAIL' }}"
+        test_details: "{{ proxy_reachable_check.msg | default('OK') }}"
+
+    - name: Host reachable via https remotely
+      tags:
+        - optional
+      uri:
+        url: "https://{{ inventory_hostname }}/exist"
+        status_code: 200
+      delegate_to: localhost
+      register: https_reachable_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: Host reachable via https remotely
+        test_status: "{{ '✅ PASS' if not https_reachable_check.failed else '❌ FAIL' }}"
+        test_details: "{{ https_reachable_check.msg | default('OK') }}"
+
+    ###
+    # User Tests
+    ###
+
+    - name: Login with oxygen bot user
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
+        method: GET
+        user: "{{ oxygen_bot_user }}"
+        password: "{{ oxygen_bot_pw }}"
+        force_basic_auth: true
+        status_code: 200
+      register: oxygen_bot_login_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Login with oxygen bot user"
+        test_status: "{{ '✅ PASS' if not oxygen_bot_login_check.failed else '❌ FAIL' }}"
+        test_details: "{{ oxygen_bot_login_check.msg | default('Authentication successful') }}"
+
+    - name: Login with non-DBA user
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
+        method: GET
+        user: "{{ non_dba_user }}"
+        password: "{{ non_dba_pw }}"
+        force_basic_auth: true
+        status_code: 200
+      register: non_dba_login_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Login with non-DBA user"
+        test_status: "{{ '✅ PASS' if not non_dba_login_check.failed else '❌ FAIL' }}"
+        test_details: "{{ non_dba_login_check.msg | default('Authentication successful') }}"
+
+    - name: Reject invalid credentials
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
+        method: GET
+        user: "{{ oxygen_bot_user }}"
+        password: "wrong_password"
+        force_basic_auth: true
+        status_code: 401
+      register: invalid_login_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Invalid credentials rejected"
+        test_status: "{{ '✅ PASS' if not invalid_login_check.failed else '❌ FAIL' }}"
+        test_details: "{{ invalid_login_check.msg | default('Authentication rejected as expected') }}"
+
+    ###
+    # Basic Ediarum Project Setup Tests
+    ###
+
+    #TODO: Webdav or REST?
+    - name: Project access with non-DBA user
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug}}/data"
+        method: GET
+        user: "{{ non_dba_user }}"
+        password: "{{ non_dba_pw }}"
+        force_basic_auth: true
+        status_code: 200
+      register: project_access
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Project access with non-DBA user"
+        test_status: "{{ '✅ PASS' if not project_access.failed else '❌ FAIL' }}"
+        test_details: "{{ project_access.msg | default('Project access successful') }}"
+
+    # TODO: These tests check if there is an ediarum scheduler job configured - unsure about the value of this test.
+    - name: Query scheduler jobs
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
+        method: POST
+        body_format: raw
+        headers:
+          Content-Type: application/xml
+        body: |
+          <query xmlns="http://exist.sourceforge.net/NS/exist">
+            <text>
+              xquery version "3.1";
+    
+              import module namespace scheduler="http://exist-db.org/xquery/scheduler";
+    
+              scheduler:get-scheduled-jobs()
+            </text>
+          </query>
+        return_content: true
+        status_code: 200
+      register: scheduler_check
+      ignore_errors: true
+
+    - name: Show scheduler response
+      debug:
+        var: scheduler_check.content
+
+    - name: Check for ediarum scheduler
+      set_fact:
+        ediarum_scheduler_present: >-
+          {{
+          scheduler_check.content is search('name="ediarumScheduler')
+          }}
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Ediarum scheduler registered"
+        test_status: "{{ '✅ PASS' if ediarum_scheduler_present else '❌ FAIL' }}"
+        test_details: >-
+          {{
+            'Found ediarum scheduler job'
+            if ediarum_scheduler_present
+            else 'No ediarum scheduler job found'
+          }}
+
+    ###
+    # Ediarum Project Setup: Specific Files
+    ###
+
+    - name: Person index
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db/projects/bspp/oxygen/ediarum.xql?index=persons"
+        method: GET
+        user: "{{ oxygen_bot_user }}"
+        password: "{{ oxygen_bot_pw }}"
+        force_basic_auth: true
+        status_code: 200
+      register: oxygen_register_persons
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Person index access"
+        test_status: "{{ '✅ PASS' if not oxygen_register_persons.failed else '❌ FAIL' }}"
+        test_details: "{{ oxygen_register_persons.msg | default('Index retrieval successful') }}"
+
+    - name: Place index
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db/projects/bspp/oxygen/ediarum.xql?index=places"
+        method: GET
+        user: "{{ oxygen_bot_user }}"
+        password: "{{ oxygen_bot_pw }}"
+        force_basic_auth: true
+        status_code: 200
+      register: oxygen_register_places
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Place index access"
+        test_status: "{{ '✅ PASS' if not oxygen_register_places.failed else '❌ FAIL' }}"
+        test_details: "{{ oxygen_register_places.msg | default('Index retrieval successful') }}"
+
+    - name: Org index
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db/projects/bspp/oxygen/ediarum.xql?index=organisations"
+        method: GET
+        user: "{{ oxygen_bot_user }}"
+        password: "{{ oxygen_bot_pw }}"
+        force_basic_auth: true
+        status_code: 200
+      register: oxygen_register_orgs
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Org index access"
+        test_status: "{{ '✅ PASS' if not oxygen_register_orgs.failed else '❌ FAIL' }}"
+        test_details: "{{ oxygen_register_orgs.msg | default('Index retrieval successful') }}"
+
+    - name: Edition index (Zotero)
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db/projects/bspp/oxygen/ediarum.xql?index=editionen"
+        method: GET
+        user: "{{ oxygen_bot_user }}"
+        password: "{{ oxygen_bot_pw }}"
+        force_basic_auth: true
+        status_code: 200
+      register: oxygen_register_editions
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Edition index access"
+        test_status: "{{ '✅ PASS' if not oxygen_register_editions.failed else '❌ FAIL' }}"
+        test_details: "{{ oxygen_register_editions.msg | default('Index retrieval successful') }}"
+
+    ###
+    # Ediarum Project Operations
+    ###
+
+    - name: Generate WebDAV test UUID
+      set_fact:
+        webdav_test_uuid: "{{ lookup('pipe', 'uuidgen') }}"
+    - name: Define WebDAV test filename
+      set_fact:
+        webdav_test_file: "automated_test_{{ webdav_test_uuid }}.xml"
+
+    - name: Create test file via WebDAV
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+        method: PUT
+        user: "{{ non_dba_user }}"
+        password: "{{ non_dba_pw }}"
+        force_basic_auth: true
+        body: |
+          <test>created</test>
+        body_format: raw
+        headers:
+          Content-Type: application/xml
+        status_code:
+          - 200
+          - 201
+          - 204
+      register: webdav_create_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "WebDAV create file"
+        test_status: "{{ '✅ PASS' if not webdav_create_check.failed else '❌ FAIL' }}"
+        test_details: >-
+          File: {{ webdav_test_file }}
+
+    - name: Update test file via WebDAV
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+        method: PUT
+        user: "{{ non_dba_user }}"
+        password: "{{ non_dba_pw }}"
+        force_basic_auth: true
+        body: |
+          <test>updated</test>
+        body_format: raw
+        headers:
+          Content-Type: application/xml
+        status_code:
+          - 200
+          - 201
+          - 204
+      register: webdav_update_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "WebDAV update file"
+        test_status: "{{ '✅ PASS' if not webdav_update_check.failed else '❌ FAIL' }}"
+        test_details: "{{ webdav_update_check.msg | default('File updated') }}"
+#### Checking result of PUT is skipped because the url module will be confused by the fact that exist webdav payload provides a "size" info of 4096 regardless of the real file content size
+#    - name: Verify updated contents
+#      uri:
+#        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+#        method: GET
+#        user: "{{ non_dba_user }}"
+#        password: "{{ non_dba_pw }}"
+#        force_basic_auth: true
+#        return_content: true
+#        status_code: 200
+#      register: webdav_verify_update_check
+#      ignore_errors: true
+#
+#    - name: Check updated content
+#      set_fact:
+#        webdav_update_valid: >-
+#          {{
+#            webdav_verify_update_check.content
+#            is search('<test>updated</test>')
+#          }}
+#
+#    - include_tasks: tasks/add_result.yml
+#      vars:
+#        test_name: "WebDAV update file"
+#        test_status: "{{ '✅ PASS' if webdav_update_valid else '❌ FAIL' }}"
+#        test_details: "{{ webdav_verify_update_check.msg | default('File updated') }}"
+
+    - name: Delete test file via WebDAV
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+        method: DELETE
+        user: "{{ non_dba_user }}"
+        password: "{{ non_dba_pw }}"
+        force_basic_auth: true
+        status_code:
+          - 200
+          - 204
+      register: webdav_delete_check
+      ignore_errors: true
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "WebDAV delete file"
+        test_status: "{{ '✅ PASS' if not webdav_delete_check.failed else '❌ FAIL' }}"
+        test_details: "{{ webdav_delete_check.msg | default('File deleted') }}"
+
+    - name: Request new BSPP ID as oxygen bot
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db/projects/bspp/oxygen/ediarum_idGenerator.xql"
+        method: GET
+        user: "{{ oxygen_bot_user }}"
+        password: "{{ oxygen_bot_pw }}"
+        force_basic_auth: true
+        return_content: true
+        status_code: 200
+      register: oxbot_id_generator_check
+      ignore_errors: true
+
+    - name: Validate generated ID
+      set_fact:
+        oxbot_id_generator_valid: >-
+          {{
+            (not oxbot_id_generator_check.failed)
+            and
+            (
+              oxbot_id_generator_check.content
+              is search('<new-id>.+</new-id>')
+            )
+          }}
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Oxbot can generate BSPP ID"
+        test_status: "{{ '✅ PASS' if oxbot_id_generator_valid else '❌ FAIL' }}"
+        test_details: "{{ oxbot_id_generator_check.content | default(oxbot_id_generator_check.msg) }}"
+
+    - name: Run index regeneration scheduler job
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db/projects/bspp/exist/routinen/scheduler/regenerate_register.xql"
+        method: GET
+        user: "{{ exist_admin_user }}"
+        password: "{{ exist_admin_pw }}"
+        force_basic_auth: true
+        return_content: true
+        status_code: 200
+        timeout: 300
+      register: scheduler_run
+      ignore_errors: true
+      when: not scheduler_check.failed
+
+    - name: Validate generated ID
+      set_fact:
+        index_regenerated: >-
+          {{
+            (not scheduler_run.failed)
+            and
+            (
+              scheduler_run.content
+              is search('<type>success</type>')
+            )
+          }}
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: "Scheduler job running"
+        test_status: "{{ '✅ PASS' if index_regenerated else '❌ FAIL' }}"
+        test_details: "{{ scheduler_run.msg | default('OK') }}"
+      when: not scheduler_check.failed
+
+    - include_tasks: tasks/add_result.yml
+      vars:
+        test_name: Dependent second check
+        test_status: "⚪ SKIPPED"
+        test_details: "Prerequesite failed (scheduler check)"
+      when: scheduler_check.failed
+
+    ############################################################
+    # CREATE REPORT
+    ############################################################
+
+    - name: Generate report
+      delegate_to: localhost
+      copy:
+        dest: ./acceptance-report.md
+        content: |
+          # Acceptance Test Report
+
+          | Test | Status | Details |
+          |------|--------|---------|
+          {% for test in acceptance_results %}
+          | {{ test.name }} | {{ test.status }} | {{ test.details | regex_replace('\r?\n','<br>') }} |
+          {% endfor %}
+
+    ############################################################
+    # FINAL VERDICT
+    ############################################################
+
+    - name: Collect failures
+      set_fact:
+        failed_tests: >-
+          {{
+            acceptance_results
+            | selectattr('status', 'search', 'FAIL')
+            | list
+          }}
+
+    - name: Show report location
+      debug:
+        msg: "Acceptance report written to acceptance-report.md"
+
+    - name: Fail if any acceptance test failed
+      fail:
+        msg: "{{ failed_tests | length }} acceptance test(s) failed."
+      when: failed_tests | length > 0

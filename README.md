@@ -35,7 +35,7 @@ You may change the file contents of the vault later with
 ansible-vault edit vault.yml
 ```
 
-## Usage
+## Usage: Service Installation and Configuration
 
 ### Install exist-db and (optionally) restore project data and settings
 
@@ -60,3 +60,13 @@ If this is not wanted, you need to replace the preconfigured certificate with a 
 After this step exist-db is reachable under default port 443 (with certificate) or default port 80 (without certificate)
 
 Alternatively you may set up a reverse proxy setup of your liking. To replicate the necessary settings for exist-db check the nginx in the `templates` folder or the [official documentation](https://exist-db.org/exist/apps/doc/production_web_proxying).
+
+## Usage: Checklist for integrity of configured services
+
+The folder `checklist` provides tasks to run automated checks on the setup of the exist-db after restoration of the project specific backup.
+
+```bash
+ansible-playbook -i inventory.yml checklist/acceptance-test.yml --ask-vault-pass
+```
+
+This command will generate `checklist/acceptance-report.md` that collects ✅ PASS and ❌ FAIL results.

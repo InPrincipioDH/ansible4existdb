@@ -1,0 +1,19 @@
+#Admin user of exist-db backup file
+exist_admin_user:
+
+#Admin password of exist-db backup file
+exist_admin_pw:
+
+#URL to retrieve zip file of backup to restore
+exist_backup_url:
+
+#Mail address to issue letsencrypt certificate with certbot
+certificate_mail:
+
+#Ediarum Bot user (priviledged)
+oxygen_bot_user:
+oxygen_bot_pw:
+
+#Non priviledged test user to check operations in ediarum project
+non_dba_user:
+non_dba_pw:

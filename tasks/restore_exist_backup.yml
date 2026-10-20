@@ -4,6 +4,9 @@
     url: "{{ exist_backup_url }}"
     dest: "{{ exist_backup_archive }}"
     mode: "0644"
+    url_username: "{{ link_user | default(omit) }}"
+    url_password: "{{ link_pw | default(omit) }}"
+    force_basic_auth: "{{ link_user is defined and link_pw is defined }}"
 
 - name: Create backup tmp directory
   ansible.builtin.file:

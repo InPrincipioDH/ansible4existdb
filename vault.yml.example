@@ -6,6 +6,8 @@ exist_admin_pw:
 
 #URL to retrieve zip file of backup to restore
 exist_backup_url:
+link_user: #omit if no auth is needed to download backup
+link_pw: #omit if no auth is needed to download backup
 
 #Mail address to issue letsencrypt certificate with certbot
 certificate_mail:

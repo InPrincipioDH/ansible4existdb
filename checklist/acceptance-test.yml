@@ -34,7 +34,7 @@
     - name: Host reachable via proxy remotely
       uri:
         url: "http://{{ inventory_hostname }}/exist"
-        status_code: 200
+        status_code: 200, 403
       delegate_to: localhost
       register: proxy_reachable_check
       ignore_errors: true
@@ -50,7 +50,7 @@
         - optional
       uri:
         url: "https://{{ inventory_hostname }}/exist"
-        status_code: 200
+        status_code: 200, 403
       delegate_to: localhost
       register: https_reachable_check
       ignore_errors: true

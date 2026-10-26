@@ -11,7 +11,15 @@ Group={{ exist_group }}
 
 WorkingDirectory={{ exist_home }}
 
-Environment="JAVA_OPTS=-XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxRAMPercentage=75.0"
+Environment="JAVA_OPTS=-DSAML_ENABLED=true \
+  -DSAML_SP_ENTITY={{ sp_entity }} \
+  -DSAML_SP_ENDPOINT={{ sp_endpoint }} \
+  -DSAML_SP_FALLBACK={{ sp_fallback }} \
+  -DSAML_IDP_ENTITY={{ idp_entity }} \
+  -DSAML_IDP_ENDPOINT={{ idp_endpoint }} \
+  -DSAML_EXSAML_PW={{ exsaml_pw }} \
+  -DSAML_CRYPTO_HMACKEY={{ hmac_key }} \
+  -XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxRAMPercentage=75.0"
 ExecStart={{ exist_home }}/bin/startup.sh
 ExecStop={{ exist_home }}/bin/shutdown.sh
 

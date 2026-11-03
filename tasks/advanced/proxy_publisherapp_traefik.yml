@@ -1,0 +1,46 @@
+########
+# Additional reverse proxy setup for TEI publisher app with traefik
+# For basic setup see tasks/https-proxy_traefik.yml
+########
+- hosts: exist_servers
+  vars_files:
+    - ../../vars.yml
+    - ../../vault.yml
+    - ../../vars_advanced.yml
+    - ../../vault_advanced.yml
+
+  tasks:
+    - name: Configure Traefik routing for TEI Publisher
+      become: true
+      template:
+        src: ../../templates/traefik_teipublisher.yml.j2
+        dest: /etc/traefik/dynamic/tei-publisher.yml
+        mode: "0644"
+      notify: reload traefik
+
+    - name: Reapply exist-db config to make sure context path config is applied
+      become: true
+      ansible.builtin.template:
+        src: ../../templates/exist-db.service.j2
+        dest: /etc/systemd/system/existdb.service
+        mode: "0644"
+      changed_when: true
+      notify:
+        - reload systemd
+        - restart exist
+
+  handlers:
+    - name: reload systemd
+      become: true
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: restart exist
+      become: true
+      ansible.builtin.systemd_service:
+        name: existdb
+        state: restarted
+        daemon_reload: true
+
+    - name: reload traefik
+      meta: noop

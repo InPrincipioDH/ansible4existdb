@@ -1,0 +1,31 @@
+http:
+  middlewares:
+    tei-rewrite:
+      replacePathRegex:
+        regex: "^{{ teipublisher_context_path }}(/.*)?$"
+        replacement: "/exist/apps/{{ teipublisher_app_name }}$1"
+
+    exist-cookie-path:
+      plugin:
+        cookiePathRewrite:
+          rewrites:
+            - name: JSESSIONID
+              regex: "/exist"
+              replacement: "{{ teipublisher_context_path }}"
+  routers:
+    tei-publisher:
+      rule: >
+        Host(`{{ inventory_hostname }}`)
+        && PathPrefix(`{{ teipublisher_context_path }}`)
+      middlewares:
+        - tei-rewrite
+        - exist-cookie-path
+      service: tei-publisher
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    tei-publisher:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:{{ exist_http_port }}"

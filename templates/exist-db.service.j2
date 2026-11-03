@@ -19,7 +19,12 @@ Environment="JAVA_OPTS=-DSAML_ENABLED=true \
   -DSAML_IDP_ENDPOINT={{ idp_endpoint }} \
   -DSAML_EXSAML_PW={{ exsaml_pw }} \
   -DSAML_CRYPTO_HMACKEY={{ hmac_key }} \
-  -XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxRAMPercentage=75.0"
+{% if teipublisher_context_path is defined %}
+  -Dteipublisher.context-path={{ teipublisher_context_path }} \
+{% endif %}
+  -XX:+UseG1GC \
+  -XX:+UseStringDeduplication \
+  -XX:MaxRAMPercentage=75.0"
 ExecStart={{ exist_home }}/bin/startup.sh
 ExecStop={{ exist_home }}/bin/shutdown.sh
 

@@ -1,0 +1,38 @@
+########
+# Additional reverse proxy setup for TEI publisher app with nginx.
+# For basic setup see tasks/https-proxy_nginx.yml
+# NOTE: only allows location /, make sure the teipublisher_context_path variable is unset
+########
+- hosts: exist_servers
+  vars_files:
+    - ../../vars.yml
+    - ../../vault.yml
+    - ../../vars_advanced.yml
+    - ../../vault_advanced.yml
+
+  tasks:
+    - name: Create nginx include directory
+      become: true
+      file:
+        path: /etc/nginx/existdb-server.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy edition location
+      become: true
+      template:
+        src: ../../templates/nginx-teipublisher.conf.j2
+        dest: /etc/nginx/existdb-server.d/edition.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: reload nginx
+
+  handlers:
+    - name: reload nginx
+      become: true
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: reloaded

@@ -1,0 +1,115 @@
+########
+# Installation of TEI publisher app
+# Requires npm package @existdb/xst on the control node
+# Requires prebuilt local version of the TEI publisher app.
+#   Expected file name: {{teipublisher_app_name}}-{{version}}-saml.xar or -nosaml.xar
+########
+- hosts: exist_servers
+
+  vars_files:
+    - ../../vars.yml
+    - ../../vault.yml
+    - ../../vars_advanced.yml
+    - ../../vault_advanced.yml
+
+  vars:
+    xar_suffix: "{{ '-saml' if saml_enabled | default(true) | bool else '-nosaml' }}"
+
+  tasks:
+
+    - name: Install TEI Publisher
+      delegate_to: localhost
+      command:
+        argv:
+          - xst
+          - package
+          - install
+          - --force #TODO: might be a good idea to make this configurable
+          - --verbose
+          - local-files
+          - "{{ teipublisher_app_localfolder }}/{{ teipublisher_app_name }}-{{ teipublisher_app_version }}{{ xar_suffix }}.xar"
+      environment: &exist_env
+        EXISTDB_USER: "{{ exist_admin_user }}"
+        EXISTDB_PASS: "{{ exist_admin_pw }}"
+        EXISTDB_SERVER: "http://{{ inventory_hostname }}:{{ exist_http_port }}"
+
+    - name: Download SAML plugin
+      delegate_to: localhost
+      when: saml_enabled
+      get_url:
+        url: "{{ saml_plugin_url }}"
+        dest: "/tmp/saml-plugin.xar"
+
+    - name: Install SAML plugin
+      delegate_to: localhost
+      when: saml_enabled
+      command:
+        argv:
+          - xst
+          - package
+          - install
+          - local-files
+          - /tmp/saml-plugin.xar
+      environment: *exist_env
+
+    - name: Reapply exist-db config to make sure SAML config is applied
+      become: true
+      ansible.builtin.template:
+        src: ../../templates/exist-db.service.j2
+        dest: /etc/systemd/system/existdb.service
+        mode: "0644"
+      changed_when: true
+      notify:
+        - reload systemd
+        - restart exist
+
+    # random unexpected registry failures on jinks installation have occured. we check here and suggestion intervention
+    - name: Verify Jinks package registry is healthy
+      uri:
+        url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
+        method: POST
+        body_format: raw
+        headers:
+          Content-Type: application/xml
+        body: |
+          <query xmlns="http://exist.sourceforge.net/NS/exist">
+            <text>
+              xquery version "3.1";
+
+              exists(
+                try {
+                  repo:get-resource(
+                    "http://tei-publisher.com/library/jinks",
+                    "modules/paths.xql"
+                  )
+                } catch * {
+                  ()
+                }
+              )
+            </text>
+          </query>
+        return_content: true
+        status_code: 200
+      register: jinks_check
+
+    - name: Fail if Jinks installation is corrupted
+      fail:
+        msg: >
+          Jinks appears to be installed incorrectly.
+          The package registry cannot resolve modules/paths.xql although the package
+          is present. This is a known inconsistent installation state.
+          Please remove the Jinks package and rerun the playbook.
+      when: "'true' not in jinks_check.content"
+
+  handlers:
+    - name: reload systemd
+      become: true
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: restart exist
+      become: true
+      ansible.builtin.systemd_service:
+        name: existdb
+        state: restarted
+        daemon_reload: true

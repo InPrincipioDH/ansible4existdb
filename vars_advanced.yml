@@ -1,0 +1,6 @@
+teipublisher_context_path: /digitale-edition #needs to start with /; DO NOT SET IF YOU USE NGINX
+teipublisher_app_name: bspp-test-tp10_dev
+teipublisher_app_version: 0.8.6
+teipublisher_app_localfolder:
+saml_enabled: true
+saml_plugin_url: https://github.com/InPrincipioDH/existdb-saml/releases/download/1.7.0-BSPP-SNAPSHOT/existdb-saml-1.7.0-BSPP-SNAPSHOT.xar

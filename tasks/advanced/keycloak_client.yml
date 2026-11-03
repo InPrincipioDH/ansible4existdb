@@ -1,0 +1,39 @@
+########
+# keycloak client setup
+# Note: This script only installs a new client in a preinstalled and preconfigured keycloak realm.
+# These steps are not part of this automation suite
+######
+- hosts: exist_servers
+  vars_files:
+    - ../../vars_advanced.yml
+    - ../../vault_advanced.yml
+
+  tasks:
+  - name: Create SAML client in keycloak realm.
+    tags:
+      - optional
+    when: saml_enabled
+    community.general.keycloak_client:
+      auth_keycloak_url: "{{ keycloak_url }}"
+      auth_realm: "{{ keycloak_auth_realm }}"
+      auth_username: "{{ keycloak_auth_user }}"
+      auth_password: "{{ keycloak_auth_pw}}"
+      realm: "{{ keycloak_realm }}"
+
+      client_id: "{{ sp_entity }}"
+      protocol: saml
+      enabled: true
+
+      admin_url: "{{ sp_endpoint }}"
+
+      redirect_uris:
+        - "{{ sp_fallback }}/*"
+
+      web_origins:
+        - "https://{{ inventory_hostname }}"
+
+      attributes:
+        "post.logout.redirect.uris": "https://{{ inventory_hostname }}/*"
+        saml.client.signature: "false" # not available with existdb SAML plugin
+
+      state: present

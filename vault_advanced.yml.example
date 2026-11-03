@@ -1,0 +1,15 @@
+#SAML config (for details see config file of SAML plugin)
+sp_entity:
+sp_endpoint:
+sp_fallback:
+idp_entity:
+idp_endpoint:
+exsaml_pw:
+hmac_key: # currently not used but needs to be set for the plugin
+
+#Keycloak
+keycloak_url:
+keycloak_auth_realm:
+keycloak_auth_user:
+keycloak_auth_pw:
+keycloak_realm:

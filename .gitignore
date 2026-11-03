@@ -30,3 +30,4 @@ bin/
 
 ### Ansible ###
 vault.yml
+vault_advanced.yml

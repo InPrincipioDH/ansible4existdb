@@ -3,7 +3,12 @@ server {
     listen [::]:80;
     server_name {{ inventory_hostname }};
 
-    # eXist-db reverse proxy headers
+	##
+	# eXist-db settings
+	##
+
+	# see https://exist-db.org/exist/apps/doc/production_web_proxying
+	# header helpers for reverse proxied servers
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -32,6 +37,7 @@ server {
         allow all;
     }
 
-    # BEGIN ANSIBLE MANAGED LOCATION: EDITION
-    # END ANSIBLE MANAGED LOCATION: EDITION
+    # Optional additional application specific configurations
+    include /etc/nginx/existdb-server.d/*.conf;
+
 }

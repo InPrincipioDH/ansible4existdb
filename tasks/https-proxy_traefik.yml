@@ -1,0 +1,94 @@
+- hosts: exist_servers
+  become: true
+  vars_files:
+    - ../vars.yml
+    - ../vault.yml
+  vars:
+    traefik_version: v3.7.17
+
+  tasks:
+    - name: Download Traefik
+      get_url:
+        url: "https://github.com/traefik/traefik/releases/download/{{ traefik_version }}/traefik_{{ traefik_version }}_linux_amd64.tar.gz"
+        dest: "/tmp/traefik.tar.gz"
+        mode: "0644"
+
+    - name: Extract Traefik
+      unarchive:
+        src: /tmp/traefik.tar.gz
+        dest: /tmp
+        remote_src: true
+
+    - name: Install binary
+      copy:
+        src: /tmp/traefik
+        dest: /usr/local/bin/traefik
+        remote_src: true
+        mode: "0755"
+
+    - name: Create directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /etc/traefik
+        - /etc/traefik/dynamic
+        - /var/lib/traefik
+    - name: Create acme storage
+      file:
+        path: /var/lib/traefik/acme.json
+        state: touch
+        mode: "0600"
+    - name: Install traefik config
+      template:
+        src: ../templates/traefik.yml.j2
+        dest: /etc/traefik/traefik.yml
+        mode: "0644"
+      notify:
+        - restart traefik
+    - name: Install exist routing
+      template:
+        src: ../templates/traefik_exist.yml.j2
+        dest: /etc/traefik/dynamic/exist.yml
+        mode: "0644"
+      notify:
+        - restart traefik
+    - name: Install systemd unit
+      template:
+        src: ../templates/traefik.service.j2
+        dest: /etc/systemd/system/traefik.service
+      notify:
+        - reload systemd
+        - restart traefik
+    - name: Enable traefik
+      systemd_service:
+        name: traefik
+        enabled: true
+        state: started
+    #traefik may return a self signed certificate before the ACME challenge is finished, so we wait for the real certificate
+    - name: Wait for HTTPS endpoint with valid certificate
+      ansible.builtin.uri:
+        url: "https://{{ inventory_hostname }}/"
+        method: GET
+        status_code: [ 200, 301, 302, 404 ]
+        validate_certs: true
+      register: result
+      retries: 30
+      delay: 10
+      until: result is succeeded
+  handlers:
+
+    - name: reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: restart traefik
+      ansible.builtin.systemd_service:
+        name: traefik
+        state: restarted
+
+    - name: reload traefik
+      ansible.builtin.systemd_service:
+        name: traefik
+        state: reloaded

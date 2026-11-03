@@ -1,0 +1,44 @@
+http:
+
+  middlewares:
+
+    local-only:
+      ipAllowList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "::1/128"
+
+  routers:
+
+    bspp-webdav:
+      rule: >
+        Host(`{{ inventory_hostname }}`)
+        && PathPrefix(`/exist/webdav/db/projects/bspp`)
+      service: exist
+      tls:
+        certResolver: letsencrypt
+
+    bspp-rest:
+      rule: >
+        Host(`{{ inventory_hostname }}`)
+        && PathPrefix(`/exist/rest/db/projects/bspp`)
+      service: exist
+      tls:
+        certResolver: letsencrypt
+
+    exist:
+      rule: >
+        Host(`{{ inventory_hostname }}`)
+        && PathPrefix(`/exist`)
+      middlewares:
+        - local-only
+      service: exist
+      tls:
+        certResolver: letsencrypt
+
+  services:
+
+    exist:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:{{ exist_http_port }}"

@@ -1,0 +1,22 @@
+# It is impossible or very tedious to configure nginx with a location different than /, because the setup heavily relies
+# on usage of $request_uri and its behaviour on url normalization. See https://faq.teipublisher.com/general/proxy/
+location / {
+
+    proxy_pass http://127.0.0.1:{{ exist_http_port }}/exist/apps/{{ teipublisher_app_name }}$request_uri;
+
+    # Header needed for TEI Publisher app to apply context path correctly
+    proxy_set_header X-Forwarded-Host $host;
+
+    # Header helpers for reverse proxied servers (setting one header requires to set other headers again as well)
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header nginx-request-uri $request_uri;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    #Workaround for cookies to work behind proxy (especially important for SAML requests)
+    proxy_cookie_path /exist /;
+
+    #make sure your data can be published or is secured by other measures than IP allow lists (for example SAML)
+    allow all;
+}

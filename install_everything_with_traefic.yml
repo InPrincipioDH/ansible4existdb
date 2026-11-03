@@ -1,0 +1,14 @@
+### Basic Setup
+
+#Install and configure exist-db and optionally restore backup
+- import_playbook: tasks/existdb.yml
+# Set up reverse proxy
+# NOTE: make sure no other reverse proxy is already running
+- import_playbook: tasks/https-proxy_traefik.yml
+
+- import_playbook: checklist/acceptance-test.yml
+
+### TEI Publisher App
+- import_playbook: tasks/advanced/install_existdb_apps.yml
+- import_playbook: tasks/advanced/proxy_publisherapp_traefik.yml
+- import_playbook: tasks/advanced/keycloak_client.yml

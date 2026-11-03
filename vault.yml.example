@@ -16,15 +16,6 @@ certificate_mail:
 oxygen_bot_user:
 oxygen_bot_pw:
 
-#Non priviledged test user to check operations in ediarum project
+#Non priviledged test user for typical operations in ediarum project
 non_dba_user:
 non_dba_pw:
-
-#SAML config
-sp_entity:
-sp_endpoint:
-sp_fallback:
-idp_entity:
-idp_endpoint:
-exsaml_pw:
-hmac_key:

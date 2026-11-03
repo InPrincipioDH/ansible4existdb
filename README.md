@@ -1,6 +1,18 @@
 # Setting up BSPP exist-db with ansible
 
-## Prerequesites
+## Concept of this playbook suite
+
+This is a collection of playbooks to automate and document steps and configurations for setup of the current project infrastructure.
+The scripts show sample installations. Their purpose is to explain details and to simplify experimental setups. They are not meant for production use.
+
+The playbooks are sorted into different categories:
+
+- `tasks`: playbooks for basic project installations
+- `checklist`: tests to assess setup success (basic tasks only)
+- `tasks/advanced`: playbooks for more advanced tasks. Those tasks are less straightforward. Their prerequisites are explained in the task files.
+- project root: `install_everything_...` playbooks as wrapper playbooks to run everything at once. Please only use if you are familiar with the individual playbooks.
+
+## Prerequisites
 
 - [control node with ansible installed](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html#control-node-requirements).
 - Remote VM to install exist-db to. The scripts are targeting debian 13, for other systems changes might be needed
@@ -23,7 +35,7 @@ cp vault.yml.example vault.yml
 ```
 
 - Configure your variables for backup restoration and https certificate in the vault. If you do not intend either, you may skip this step
-- Encrypt the vault file
+- Encrypt the vault file (optional)
 
 ```bash
 ansible-vault encrypt vault.yml
@@ -34,6 +46,9 @@ You may change the file contents of the vault later with
 ```bash
 ansible-vault edit vault.yml
 ```
+
+When using encrypted vault files, the decryption key must be provided on playbook runs, for example interactively with `--ask-vault-pass`.
+In case of multiple vault files, all vaults must have the same password for this parameter to work.
 
 ## Usage: Service Installation and Configuration
 
@@ -49,12 +64,15 @@ To access it remotely, you might have to open ports / change firewall settings i
 ### Set up reverse proxy and get certificate
 
 ```bash
-ansible-playbook -i inventory.yml tasks/https-proxy.yml --ask-vault-pass
+ansible-playbook -i inventory.yml tasks/https-proxy_(traefik|nginx).yml --ask-vault-pass
 ```
 
-To set up the reverse proxy but not issue a certificate, you may skip the step with `--skip-tag optional`
+If only installing exist-db with project data, the choice of proxy does not matter.
+If you want to also install the TEI publisher app, traefik is recommended due to limitations of nginx.
 
-To set up an https certificate with certbot, port 80 of the VM needs to be open.
+To set up the reverse proxy with nginx but not issue a certificate, you may skip the step with `--skip-tag optional`
+
+To set up an https certificate with letsencrypt in the preconfigured way (certbot for nginx / http 01 challenge for traefik), port 80 of the VM needs to be open.
 If this is not wanted, you need to replace the preconfigured certificate with a different certificate step (for example self signed certificate)
 
 After this step exist-db is reachable under default port 443 (with certificate) or default port 80 (without certificate)
@@ -70,3 +88,29 @@ ansible-playbook -i inventory.yml checklist/acceptance-test.yml --ask-vault-pass
 ```
 
 This command will generate `checklist/acceptance-report.md` that collects ✅ PASS and ❌ FAIL results.
+
+The acceptance tests assumes default proxy settings and a restored backup. Changes might result in failures.
+Most tests are run locally on the existdb host, but some check reachability from outside. Proxy related tests can be skipped with `--skip-tag optional`
+
+## Usage: Advanced tasks
+
+The advanced playbooks can be used to install the tei publisher app (with or without SSO) and to set up a reverse proxy location for access.
+Successful setup has been tested with these tasks. However, they have various prerequisites such as
+- App installation: local app package for the TEI publisher app
+- App installation: npm installed on the ansible control node
+- SSO: preinstalled and configured keycloak instance (for SSO)or npm on the ansible control node.
+
+It is recommended to read and understand the playbooks before trying to use them.
+
+## Misc
+
+### Reverse proxy setup
+
+Reverse proxy setup for the TEI publisher app is relatively complicated due to the underlying TEI publisher implementation.
+Some pointers:
+- Relevant headers for exist-db proxying: see https://exist-db.org/exist/apps/doc/production_web_proxying
+- Relevant header for TEI publisher app proxying: `X-Forwarded-Host` (because it affects how `teipublisher.context.path` is handled)
+- System variable `teipublisher.context.path` can be utilized to serve app under a location that is not the host basepath.
+  - There is no known solution to utilize such a context path with nginx, so setting this variable with nginx is not advised
+  - Once this system variable is set, the native application will become unusable. It will only be available via reverse proxy.
+- Traefik allows to use an arbitrary app location. There is no official documentation for traefik on the TEI publisher side and this setup has not been used in production, so caution is advised.

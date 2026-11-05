@@ -29,7 +29,7 @@
           - --force #TODO: might be a good idea to make this configurable
           - --verbose
           - local-files
-          - "{{ teipublisher_app_localfolder }}/{{ teipublisher_app_name }}-{{ teipublisher_app_version }}{{ xar_suffix }}.xar"
+          - "{{ teipublisher_app_localfolder }}{{ teipublisher_app_name }}-{{ teipublisher_app_version }}{{ xar_suffix }}.xar"
       environment: &exist_env
         EXISTDB_USER: "{{ exist_admin_user }}"
         EXISTDB_PASS: "{{ exist_admin_pw }}"

@@ -101,10 +101,12 @@ Most tests are run locally on the existdb host, but some check reachability from
 The advanced playbooks can be used to install the tei publisher app (with or without SSO) and to set up a reverse proxy location for access.
 Successful setup has been tested with these tasks. However, they have various prerequisites such as
 - App installation: local app package for the TEI publisher app
-- App installation: npm installed on the ansible control node
+- App installation: npm package xst installed on the ansible control node
 - SSO: preinstalled and configured keycloak instance (for SSO)or npm on the ansible control node.
 
 It is recommended to read and understand the playbooks before trying to use them.
+
+Additional vars are needed by the advanced scripts (see `vars_advanced.yml`and `vault_advanced.yml.example`)
 
 ## Misc
 

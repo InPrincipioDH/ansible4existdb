@@ -1,6 +1,8 @@
 ########
 # Installation of TEI publisher app
-# Requires npm package @existdb/xst on the control node
+# Requires npm package @existdb/xst on the control node. Please install manually:
+# npm install --global @existdb/xst
+# xst command needs to be available / in PATH
 # Requires prebuilt local version of the TEI publisher app.
 #   Expected file name: {{teipublisher_app_name}}-{{version}}-saml.xar or -nosaml.xar
 ########

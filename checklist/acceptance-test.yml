@@ -401,7 +401,7 @@
         force_basic_auth: true
         return_content: true
         status_code: 200
-        timeout: 300
+        timeout: 500
       register: scheduler_run
       ignore_errors: true
       when: not scheduler_check.failed

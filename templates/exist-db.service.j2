@@ -11,7 +11,9 @@ Group={{ exist_group }}
 
 WorkingDirectory={{ exist_home }}
 
-Environment="JAVA_OPTS=-DSAML_ENABLED=true \
+Environment=\
+{% if sp_entity is defined %}
+  "JAVA_OPTS=-DSAML_ENABLED=true \
   -DSAML_SP_ENTITY={{ sp_entity }} \
   -DSAML_SP_ENDPOINT={{ sp_endpoint }} \
   -DSAML_SP_FALLBACK={{ sp_fallback }} \
@@ -19,6 +21,7 @@ Environment="JAVA_OPTS=-DSAML_ENABLED=true \
   -DSAML_IDP_ENDPOINT={{ idp_endpoint }} \
   -DSAML_EXSAML_PW={{ exsaml_pw }} \
   -DSAML_CRYPTO_HMACKEY={{ hmac_key }} \
+{% endif %}
 {% if teipublisher_context_path is defined %}
   -Dteipublisher.context-path={{ teipublisher_context_path }} \
 {% endif %}

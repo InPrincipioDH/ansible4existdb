@@ -63,8 +63,12 @@ To access it remotely, you might have to open ports / change firewall settings i
 
 ### Set up reverse proxy and get certificate
 
+#### Choose proxy: nginx or traefik
+
+To set up a reverse proxy on the default ports, you may use the following command (pick either the traefik or nginx version).
+
 ```bash
-ansible-playbook -i inventory.yml tasks/https-proxy_(traefik|nginx).yml --ask-vault-pass
+ansible-playbook -i inventory.yml tasks/https-proxy_{traefik|nginx}.yml --ask-vault-pass
 ```
 
 If only installing exist-db with project data, the choice of proxy does not matter.

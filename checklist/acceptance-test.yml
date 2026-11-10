@@ -268,7 +268,7 @@
 
     - name: Create test file via WebDAV
       uri:
-        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/{{ webdav_test_file }}"
         method: PUT
         user: "{{ non_dba_user }}"
         password: "{{ non_dba_pw }}"
@@ -294,7 +294,7 @@
 
     - name: Update test file via WebDAV
       uri:
-        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/{{ webdav_test_file }}"
         method: PUT
         user: "{{ non_dba_user }}"
         password: "{{ non_dba_pw }}"
@@ -319,7 +319,7 @@
 #### Checking result of PUT is skipped because the url module will be confused by the fact that exist webdav payload provides a "size" info of 4096 regardless of the real file content size
 #    - name: Verify updated contents
 #      uri:
-#        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+#        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/{{ webdav_test_file }}"
 #        method: GET
 #        user: "{{ non_dba_user }}"
 #        password: "{{ non_dba_pw }}"
@@ -345,7 +345,7 @@
 
     - name: Delete test file via WebDAV
       uri:
-        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/Sonstiges/{{ webdav_test_file }}"
+        url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug }}/data/{{ webdav_test_file }}"
         method: DELETE
         user: "{{ non_dba_user }}"
         password: "{{ non_dba_pw }}"

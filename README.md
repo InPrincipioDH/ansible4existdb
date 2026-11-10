@@ -120,3 +120,10 @@ Some pointers:
   - There is no known solution to utilize such a context path with nginx, so setting this variable with nginx is not advised
   - Once this system variable is set, the native application will become unusable. It will only be available via reverse proxy.
 - Traefik allows to use an arbitrary app location. There is no official documentation for traefik on the TEI publisher side and this setup has not been used in production, so caution is advised.
+
+### TEI Publisher 10 App
+
+Since TEI Publisher 10, Jinks as application manager is part of it's ecosystem and it needs to be installed as a dependency.
+For unknown reason, there are rare installation failures where jinks is available as an app, but its exposed modules (cpy and path) are not.
+In this case jinks needs to be reinstalled, for example by removing it manually via exist-db package manager and running the ansible task again.
+There is a check in place in the ansible playbook to detect this issue.

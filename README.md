@@ -81,7 +81,7 @@ If this is not wanted, you need to replace the preconfigured certificate with a 
 
 After this step exist-db is reachable under default port 443 (with certificate) or default port 80 (without certificate)
 
-Alternatively you may set up a reverse proxy setup of your liking. To replicate the necessary settings for exist-db check the nginx in the `templates` folder or the [official documentation](https://exist-db.org/exist/apps/doc/production_web_proxying).
+Alternatively you may set up a reverse proxy setup of your liking. To replicate the necessary settings for exist-db check the nginx or traefik configs in the `templates` folder or the [official documentation](https://exist-db.org/exist/apps/doc/production_web_proxying).
 
 ## Usage: Checklist for integrity of configured services
 
@@ -96,13 +96,15 @@ This command will generate `checklist/acceptance-report.md` that collects ✅ PA
 The acceptance tests assumes default proxy settings and a restored backup. Changes might result in failures.
 Most tests are run locally on the existdb host, but some check reachability from outside. Proxy related tests can be skipped with `--skip-tag optional`
 
+The folder additionally contains `recommended-manual-tests.md` with some suggestions for manual checks.
+
 ## Usage: Advanced tasks
 
 The advanced playbooks can be used to install the tei publisher app (with or without SSO) and to set up a reverse proxy location for access.
 Successful setup has been tested with these tasks. However, they have various prerequisites such as
 - App installation: local app package for the TEI publisher app
 - App installation: npm package xst installed on the ansible control node
-- SSO: preinstalled and configured keycloak instance (for SSO)or npm on the ansible control node.
+- SSO: preinstalled and configured keycloak instance (for SSO)
 
 It is recommended to read and understand the playbooks before trying to use them.
 

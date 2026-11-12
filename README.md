@@ -110,6 +110,9 @@ It is recommended to read and understand the playbooks before trying to use them
 
 Additional vars are needed by the advanced scripts (see `vars_advanced.yml`and `vault_advanced.yml.example`)
 
+To install the tei publisher app without SSO functionality, set the `saml_enabled` var to false and use a `-nosaml` build of the app.
+Be aware that this might lead to project data being publicly accessible without authentication.
+
 ## Misc
 
 ### Reverse proxy setup

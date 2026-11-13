@@ -56,6 +56,8 @@
       ignore_errors: true
 
     - include_tasks: tasks/add_result.yml
+      tags:
+        - optional
       vars:
         test_name: Host reachable via https remotely
         test_status: "{{ '✅ PASS' if not https_reachable_check.failed else '❌ FAIL' }}"

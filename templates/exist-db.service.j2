@@ -22,7 +22,7 @@ Environment=\
   -DSAML_EXSAML_PW={{ exsaml_pw }} \
   -DSAML_CRYPTO_HMACKEY={{ hmac_key }} \
 {% endif %}
-{% if teipublisher_context_path is defined %}
+{% if teipublisher_context_path is defined and teipublisher_context_path is not none and teipublisher_context_path | trim | default('') != "" and teipublisher_context_path.startswith('/') %}
   -Dteipublisher.context-path={{ teipublisher_context_path }} \
 {% endif %}
   -XX:+UseG1GC \

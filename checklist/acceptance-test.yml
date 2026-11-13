@@ -31,6 +31,7 @@
         test_status: "{{ '✅ PASS' if not exist_locally_reachable_check.failed else '❌ FAIL' }}"
         test_details: "{{ exist_locally_reachable_check.msg | default('OK') }}"
 
+    # Since it is recommended to open exist-db locations on a need to know basis, we gracefully accept both HTTP 200 and 403. Adapt to your setup, if needed
     - name: Host reachable via proxy remotely
       uri:
         url: "http://{{ inventory_hostname }}/exist"
@@ -45,6 +46,7 @@
         test_status: "{{ '✅ PASS' if not proxy_reachable_check.failed else '❌ FAIL' }}"
         test_details: "{{ proxy_reachable_check.msg | default('OK') }}"
 
+    # Since it is recommended to open exist-db locations on a need to know basis, we gracefully accept both HTTP 200 and 403. Adapt to your setup, if needed
     - name: Host reachable via https remotely
       tags:
         - optional
@@ -67,6 +69,7 @@
     # User Tests
     ###
 
+    # Bot access is necessary for connection between Oxygen XML editor and some ediarum.db functionalities
     - name: Login with oxygen bot user
       uri:
         url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
@@ -84,6 +87,7 @@
         test_status: "{{ '✅ PASS' if not oxygen_bot_login_check.failed else '❌ FAIL' }}"
         test_details: "{{ oxygen_bot_login_check.msg | default('Authentication successful') }}"
 
+    # Individual project member access is necessary for connection between Oxygen XML editor and database
     - name: Login with non-DBA user
       uri:
         url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
@@ -122,7 +126,8 @@
     # Basic Ediarum Project Setup Tests
     ###
 
-    #TODO: Webdav or REST?
+    # Basic Webdav access - if this is available, connecting oxygen xml editor should not be a problem
+    # See https://www.ediarum.org/docs/set-up/DE/topics/setup/oxygen_mit-db-verbinden.html
     - name: Project access with non-DBA user
       uri:
         url: "http://localhost:{{ exist_http_port }}/exist/webdav/db/projects/{{ ediarum_project_slug}}/data"
@@ -140,7 +145,8 @@
         test_status: "{{ '✅ PASS' if not project_access.failed else '❌ FAIL' }}"
         test_details: "{{ project_access.msg | default('Project access successful') }}"
 
-    # TODO: These tests check if there is an ediarum scheduler job configured - unsure about the value of this test.
+    # See ediarum.db package web UI, Verwaltung / Scheduler and Projektkonfiguration / Scheduler
+    # These tests check if there is an ediarum scheduler job configured - unsure about the value of this test.
     - name: Query scheduler jobs
       uri:
         url: "http://localhost:{{ exist_http_port }}/exist/rest/db"
@@ -364,6 +370,7 @@
         test_status: "{{ '✅ PASS' if not webdav_delete_check.failed else '❌ FAIL' }}"
         test_details: "{{ webdav_delete_check.msg | default('File deleted') }}"
 
+    # See https://www.ediarum.org/docs/set-up/DE/topics/customization/id-generator.html
     - name: Request new BSPP ID as oxygen bot
       uri:
         url: "http://localhost:{{ exist_http_port }}/exist/rest/db/projects/bspp/oxygen/ediarum_idGenerator.xql"

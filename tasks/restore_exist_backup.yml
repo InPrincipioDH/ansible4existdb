@@ -16,6 +16,7 @@
     group: "{{ exist_group }}"
     mode: "0755"
 
+#https://exist-db.org/exist/apps/doc/backup#cli
 - name: Restore backup
   ansible.builtin.command:
     cmd: >
@@ -37,6 +38,7 @@
     dest: /tmp/repair-repository.xq
     mode: "0644"
 
+# https://exist-db.org/exist/apps/doc/backup#repair
 - name: Repair package repository
   ansible.builtin.command:
     cmd: >

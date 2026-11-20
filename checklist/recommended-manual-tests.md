@@ -14,4 +14,4 @@ The following tests are recommended after installation of the TEI Publisher App
 - [ ] Application landing page can be reached via reverse proxy (only works if reverse proxy is configured)
 - [ ] <app or proxy path>/documentation/customization_table.xml can be opened and displays a table of stylings
 - [ ] <app or proxy path>/places displays map at least on most zoomed out layers
-- [ ] add a user to the group tei-admin and log in within the app (not on the landing page). A new menu entry with admin options should appear.
+- [ ] add a user to the group tei and log in within the app (not on the landing page). A new menu entry with admin options should appear.

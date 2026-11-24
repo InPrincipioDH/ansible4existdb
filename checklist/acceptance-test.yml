@@ -269,10 +269,10 @@
 
     - name: Generate WebDAV test UUID
       set_fact:
-        webdav_test_uuid: "{{ lookup('pipe', 'uuidgen') }}"
+        webdav_test_id: "{{ lookup('password', '/dev/null length=32 chars=hexdigits') }}"
     - name: Define WebDAV test filename
       set_fact:
-        webdav_test_file: "automated_test_{{ webdav_test_uuid }}.xml"
+        webdav_test_file: "automated_test_{{ webdav_test_id }}.xml"
 
     - name: Create test file via WebDAV
       uri:

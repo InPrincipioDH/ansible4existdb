@@ -1,5 +1,7 @@
 ########
 # Installation of TEI publisher app
+# Either install from control node (preferred if npm already available there) or from remote hosts
+# To switch installation mode set teipublisher_install_mode to controlnode or to remote
 # Requires npm package @existdb/xst on the control node. Please install manually:
 # npm install --global @existdb/xst
 # xst command needs to be available / in PATH
@@ -16,11 +18,57 @@
 
   vars:
     xar_suffix: "{{ '-saml' if saml_enabled | default(true) | bool else '-nosaml' }}"
+    teipublisher_xar_file: >-
+      {{
+        (
+          (teipublisher_app_localfolder | default('', true))
+          ~ teipublisher_app_name
+          ~ '-'
+          ~ teipublisher_app_version
+          ~ xar_suffix
+          ~ '.xar'
+        )
+        if teipublisher_install_mode == 'controlnode'
+        else '/tmp/tei-publisher.xar'
+      }}
 
   tasks:
 
+    - name: Install npm on host
+      # The following line would only become relevant if you comment out the 'when' condition
+      # You may do so to do prerequesite installations on your control node with ansible
+      delegate_to: "{{ 'localhost' if teipublisher_install_mode == 'controlnode' else omit }}"
+      when: teipublisher_install_mode == 'remote'
+      become: true
+      package:
+        name:
+          - nodejs
+          - npm
+        state: present
+
+    - name: Install xst package on host
+      # The following line would only become relevant if you comment out the 'when' condition
+      # You may do so to do prerequesite installations on your control node with ansible
+      delegate_to: "{{ 'localhost' if teipublisher_install_mode == 'controlnode' else omit }}"
+      when: teipublisher_install_mode == 'remote'
+      become: true
+      npm:
+        name: "@existdb/xst"
+        global: true
+        state: present
+
+    - name: Copy publisher app to host
+      # The following line would only become relevant if you comment out the 'when' condition
+      # You may do so to do prerequesite installations on your control node with ansible
+      delegate_to: "{{ 'localhost' if teipublisher_install_mode == 'controlnode' else omit }}"
+      when: teipublisher_install_mode == 'remote'
+      copy:
+        src: "{{ teipublisher_app_localfolder }}{{ teipublisher_app_name }}-{{ teipublisher_app_version }}{{ xar_suffix }}.xar"
+        dest: /tmp/tei-publisher.xar
+        mode: '0644'
+
     - name: Install TEI Publisher
-      delegate_to: localhost
+      delegate_to: "{{ 'localhost' if teipublisher_install_mode == 'controlnode' else omit }}"
       command:
         argv:
           - xst
@@ -29,21 +77,21 @@
           - --force #TODO: might be a good idea to make this configurable
           - --verbose
           - local-files
-          - "{{ teipublisher_app_localfolder }}{{ teipublisher_app_name }}-{{ teipublisher_app_version }}{{ xar_suffix }}.xar"
+          - "{{ teipublisher_xar_file }}"
       environment: &exist_env
         EXISTDB_USER: "{{ exist_admin_user }}"
         EXISTDB_PASS: "{{ exist_admin_pw }}"
-        EXISTDB_SERVER: "http://{{ inventory_hostname }}:{{ exist_http_port }}"
+        EXISTDB_SERVER: "http://{{ teipublisher_target_host }}:{{ exist_http_port }}"
 
     - name: Download SAML plugin
-      delegate_to: localhost
+      delegate_to: "{{ 'localhost' if teipublisher_install_mode == 'controlnode' else omit }}"
       when: saml_enabled
       get_url:
         url: "{{ saml_plugin_url }}"
         dest: "/tmp/saml-plugin.xar"
 
     - name: Install SAML plugin
-      delegate_to: localhost
+      delegate_to: "{{ 'localhost' if teipublisher_install_mode == 'controlnode' else omit }}"
       when: saml_enabled
       command:
         argv:

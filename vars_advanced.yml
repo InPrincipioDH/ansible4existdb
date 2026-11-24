@@ -1,6 +1,10 @@
 teipublisher_context_path: /digitale-edition #needs to start with /; DO NOT SET IF YOU USE NGINX
 teipublisher_app_name: bspp-test-tp10_dev
-teipublisher_app_version: 0.8.6
-teipublisher_app_localfolder: #if empty, the file needs to be stored in tasks/advanced. Otherwise use relative or absolute folder path
+teipublisher_app_version: 0.11.0
+teipublisher_app_localfolder: #if empty, the file needs to be stored in tasks/advanced. Otherwise use relative or absolute folder path (with trailing /)
+# to install packages from control node, preinstall npm and xst
+teipublisher_install_mode: controlnode #controlnode | remote
+# used in controlnode mode only
+teipublisher_target_host: "{{ inventory_hostname }}"
 saml_enabled: true
 saml_plugin_url: https://github.com/InPrincipioDH/existdb-saml/releases/download/1.7.0-BSPP-SNAPSHOT/existdb-saml-1.7.0-BSPP-SNAPSHOT.xar

@@ -11,7 +11,7 @@
 
   tasks:
     - name: check if playbook should run
-      when: apache_port is defined and apache_port != ""
+      when: not apache_port > 0
       meta: end_play
 
     - name: Install Apache
@@ -89,6 +89,16 @@
         group: root
         mode: "0755"
 
+    # see https://github.com/UNINETT/mod_auth_mellon/blob/master/mellon_create_metadata.sh#L39C1-L39C76
+    - name: Calculate mellon base filename
+      set_fact:
+        mellon_outfile: >-
+          {{
+          mellon_entity
+          | regex_replace('[^0-9A-Za-z.]', '_')
+          | regex_replace('_+', '_')
+          }}
+
     - name: Generate SP metadata
       become: true
       command:
@@ -98,71 +108,14 @@
           {{ mellon_endpoint }}
       args:
         chdir: /etc/apache2/mellon
-
-    - name: Find generated metadata XML
-      find:
-        paths: /etc/apache2/mellon
-        patterns: "*.xml"
-        excludes: "idp-metadata.xml"
-      register: mellon_xml
-
-    - name: Create stable metadata symlink
-      become: true
-      file:
-        src: "{{ mellon_xml.files[0].path }}"
-        dest: /etc/apache2/mellon/sp.xml
-        state: link
-
-    - name: Find generated metadata key
-      find:
-        paths: /etc/apache2/mellon
-        patterns: "*.key"
-      register: mellon_key
-
-    - name: Create stable metadata symlink
-      become: true
-      file:
-        src: "{{ mellon_key.files[0].path }}"
-        dest: /etc/apache2/mellon/sp.key
-        state: link
-
-    - name: Find generated metadata cert
-      find:
-        paths: /etc/apache2/mellon
-        patterns: "*.cert"
-      register: mellon_cert
-
-    - name: Create stable metadata symlink
-      become: true
-      file:
-        src: "{{ mellon_cert.files[0].path }}"
-        dest: /etc/apache2/mellon/sp.cert
-        state: link
+        creates: /etc/apache2/mellon/{{ mellon_outfile }}.cert
 
     - name: Download IdP metadata to staging
       become: true
       ansible.builtin.get_url:
         url: "{{ idp_saml_xml_url }}"
-        dest: /etc/apache2/mellon/idp_metadata.xml.new
-        mode: "0644"
-        force: true
-
-    - name: Validate downloaded metadata is SAML XML
-      become: true
-      ansible.builtin.command:
-        cmd: xmllint --xpath '//*[local-name()="EntityDescriptor"]' /etc/apache2/mellon/idp_metadata.xml.new
-      changed_when: false
-
-    - name: Install validated IdP metadata
-      become: true
-      ansible.builtin.copy:
-        src: /etc/apache2/mellon/idp_metadata.xml.new
-        remote_src: true
         dest: /etc/apache2/mellon/idp_metadata.xml
-        owner: root
-        group: www-data
         mode: "0644"
-        backup: true
       notify: restart apache
 
     - name: Set group ownership of mellon files

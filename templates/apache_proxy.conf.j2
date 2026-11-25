@@ -15,9 +15,9 @@
     RequestHeader set X-Forwarded-Host "%{Host}s"
     SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
 
-    ProxyPass /de/ http://127.0.0.1:{{ exist_http_port }}/exist/apps/{{ teipublisher_app_name }}/ nocanon
+    ProxyPass {{ teipublisher_context_path }} http://127.0.0.1:{{ exist_http_port }}/exist/apps/{{ teipublisher_app_name }} nocanon
 
-    ProxyPassReverse /de/ http://127.0.0.1:{{ exist_http_port }}/
+    ProxyPassReverse {{ teipublisher_context_path }} http://127.0.0.1:{{ exist_http_port }}
 
     ErrorLog ${APACHE_LOG_DIR}/tei-proxy-error.log
     CustomLog ${APACHE_LOG_DIR}/tei-proxy-access.log combined

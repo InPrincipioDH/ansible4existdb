@@ -1,0 +1,4 @@
+- import_playbook: tasks/advanced/install_existdb_apps.yml
+- import_playbook: tasks/advanced/proxy_publisherapp_{{proxy}}.yml
+- import_playbook: tasks/advanced/keycloak_client.yml
+- import_playbook: tasks/advanced/keycloak_client_mellon.yml

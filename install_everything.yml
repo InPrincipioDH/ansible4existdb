@@ -1,0 +1,7 @@
+### Basic Setup
+
+#Install and configure exist-db and optionally restore backup
+- import_playbook: setup_exist.yml
+
+### TEI Publisher App
+- import_playbook: setup_publisherapp.yml

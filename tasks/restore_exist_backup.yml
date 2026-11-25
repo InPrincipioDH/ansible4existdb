@@ -45,6 +45,7 @@
       {{ exist_home }}/bin/client.sh
       -u {{ exist_admin_user }}
       -P {{ exist_admin_pw }}
+      -ouri=xmldb:exist://localhost:{{ exist_http_port }}/exist/xmlrpc
       -F /tmp/repair-repository.xq
 
 - name: Reactivate ediarum schedulers

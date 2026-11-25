@@ -1,7 +1,4 @@
 #SAML config (for details see config file of SAML plugin)
-sp_entity:
-sp_endpoint:
-sp_fallback:
 idp_entity:
 idp_endpoint:
 exsaml_pw:

@@ -1,10 +1,21 @@
 teipublisher_context_path: /digitale-edition #needs to start with /; DO NOT SET IF YOU USE NGINX
 teipublisher_app_name: bspp-test-tp10_dev
-teipublisher_app_version: 0.11.0
+teipublisher_app_version: 0.11.1
 teipublisher_app_localfolder: #if empty, the file needs to be stored in tasks/advanced. Otherwise use relative or absolute folder path (with trailing /)
 # to install packages from control node, preinstall npm and xst
 teipublisher_install_mode: controlnode #controlnode | remote
 # used in controlnode mode only
 teipublisher_target_host: "{{ inventory_hostname }}"
-saml_enabled: true
+saml_enabled: false
 saml_plugin_url: https://github.com/InPrincipioDH/existdb-saml/releases/download/1.7.0-BSPP-SNAPSHOT/existdb-saml-1.7.0-BSPP-SNAPSHOT.xar
+
+# Variables used for SAML within existdb (saml_enabled must be set to true)
+sp_entity: "https://{{ inventory_hostname }}/exist"
+sp_endpoint: "https://{{ inventory_hostname }}{{ teipublisher_context_path }}/SAML2SP"
+sp_fallback: "https://{{ inventory_hostname }}{{ teipublisher_context_path }}"
+
+# Variables used for SAML in an extra apache layer (saml_enabled must be set to false)
+apache_port: 8081
+mellon_entity: "https://{{ inventory_hostname }}/{{ teipublisher_context_path }}"
+mellon_endpoint: "https://{{ inventory_hostname }}/mellon"
+idp_saml_xml_url:

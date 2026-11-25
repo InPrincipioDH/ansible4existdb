@@ -1,0 +1,22 @@
+# /etc/apache2/conf-available/mellon.conf
+
+<Location /mellon>
+    SetHandler mellon-handler
+    MellonEnable "info"
+
+    MellonSPMetadataFile /etc/apache2/mellon/sp.xml
+    MellonSPPrivateKeyFile /etc/apache2/mellon/sp.key
+    MellonSPCertFile /etc/apache2/mellon/sp.cert
+    MellonIdPMetadataFile /etc/apache2/mellon/idp_metadata.xml
+</Location>
+
+<Location /de>
+
+    MellonEnable auth
+    Require valid-user
+
+    MellonSPMetadataFile /etc/apache2/mellon/sp.xml
+    MellonSPPrivateKeyFile /etc/apache2/mellon/sp.key
+    MellonSPCertFile /etc/apache2/mellon/sp.cert
+    MellonIdPMetadataFile /etc/apache2/mellon/idp_metadata.xml
+</Location>

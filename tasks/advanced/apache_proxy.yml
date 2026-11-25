@@ -1,0 +1,198 @@
+########
+# Setup for Apache with Mellon as SAML SP
+# Make sure to set saml to false in vars (to disable saml within exist-db)
+########
+- hosts: exist_servers
+  vars_files:
+    - ../../vars.yml
+    - ../../vault.yml
+    - ../../vars_advanced.yml
+    - ../../vault_advanced.yml
+
+  tasks:
+    - name: check if playbook should run
+      when: apache_port is defined and apache_port != ""
+      meta: end_play
+
+    - name: Install Apache
+      become: true
+      package:
+        name:
+          - apache2
+        state: present
+
+    - name: Enable required modules
+      become: true
+      community.general.apache2_module:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - proxy
+        - proxy_http
+        - headers
+        - rewrite
+    - name: Deploy proxy virtual host
+      become: true
+      template:
+        src: ../../templates/apache_proxy.conf.j2
+        dest: /etc/apache2/sites-available/publisher_proxy.conf
+        mode: "0644"
+      notify: restart apache
+
+    - name: Enable proxy site
+      become: true
+      ansible.builtin.file:
+        src: /etc/apache2/sites-available/publisher_proxy.conf
+        dest: /etc/apache2/sites-enabled/publisher_proxy.conf
+        state: link
+        force: true
+      notify:  restart apache
+
+    - name: Configure apache ports
+      become: true
+      template:
+        src: ../../templates/apache-ports.conf.j2
+        dest: /etc/apache2/ports.conf
+        mode: "0644"
+      notify: restart apache
+    - name: Disable default site
+      become: true
+      command: a2dissite 000-default
+      ignore_errors: true
+    - name: Ensure apache running
+      become: true
+      service:
+        name: apache2
+        state: started
+        enabled: true
+
+    - name: Install Mellon
+      become: true
+      apt:
+        name:
+          - libapache2-mod-auth-mellon
+        state: present
+        update_cache: true
+
+    - name: Enable Mellon module
+      become: true
+      command: a2enmod auth_mellon
+      register: mellon_module
+      changed_when: "'already enabled' not in mellon_module.stdout"
+
+    - name: Create Mellon config directory
+      become: true
+      file:
+        path: /etc/apache2/mellon
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Generate SP metadata
+      become: true
+      command:
+        cmd: >
+          mellon_create_metadata
+          {{ mellon_entity }}
+          {{ mellon_endpoint }}
+      args:
+        chdir: /etc/apache2/mellon
+
+    - name: Find generated metadata XML
+      find:
+        paths: /etc/apache2/mellon
+        patterns: "*.xml"
+        excludes: "idp-metadata.xml"
+      register: mellon_xml
+
+    - name: Create stable metadata symlink
+      become: true
+      file:
+        src: "{{ mellon_xml.files[0].path }}"
+        dest: /etc/apache2/mellon/sp.xml
+        state: link
+
+    - name: Find generated metadata key
+      find:
+        paths: /etc/apache2/mellon
+        patterns: "*.key"
+      register: mellon_key
+
+    - name: Create stable metadata symlink
+      become: true
+      file:
+        src: "{{ mellon_key.files[0].path }}"
+        dest: /etc/apache2/mellon/sp.key
+        state: link
+
+    - name: Find generated metadata cert
+      find:
+        paths: /etc/apache2/mellon
+        patterns: "*.cert"
+      register: mellon_cert
+
+    - name: Create stable metadata symlink
+      become: true
+      file:
+        src: "{{ mellon_cert.files[0].path }}"
+        dest: /etc/apache2/mellon/sp.cert
+        state: link
+
+    - name: Download IdP metadata to staging
+      become: true
+      ansible.builtin.get_url:
+        url: "{{ idp_saml_xml_url }}"
+        dest: /etc/apache2/mellon/idp_metadata.xml.new
+        mode: "0644"
+        force: true
+
+    - name: Validate downloaded metadata is SAML XML
+      become: true
+      ansible.builtin.command:
+        cmd: xmllint --xpath '//*[local-name()="EntityDescriptor"]' /etc/apache2/mellon/idp_metadata.xml.new
+      changed_when: false
+
+    - name: Install validated IdP metadata
+      become: true
+      ansible.builtin.copy:
+        src: /etc/apache2/mellon/idp_metadata.xml.new
+        remote_src: true
+        dest: /etc/apache2/mellon/idp_metadata.xml
+        owner: root
+        group: www-data
+        mode: "0644"
+        backup: true
+      notify: restart apache
+
+    - name: Set group ownership of mellon files
+      become: true
+      file:
+        path: /etc/apache2/mellon
+        state: directory
+        recurse: true
+        group: www-data
+        mode: "g+rX,o=rX"
+      notify: restart apache
+
+    - name: Deploy Apache Mellon configuration
+      become: true
+      template:
+        src: ../../templates/mellon.conf.j2
+        dest: /etc/apache2/conf-available/mellon.conf
+        mode: "0644"
+      notify: restart apache
+
+    - name: Enable Mellon configuration
+      become: true
+      command: a2enconf mellon
+      register: mellon_conf
+      changed_when: "'already enabled' not in mellon_conf.stdout"
+      notify: restart apache
+
+  handlers:
+    - name: restart apache
+      become: true
+      service:
+        name: apache2
+        state: restarted

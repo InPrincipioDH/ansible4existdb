@@ -1,0 +1,25 @@
+# tei-proxy.conf.j2
+
+#Listen {{ apache_port }}
+
+<VirtualHost *:{{ apache_port }}>
+    Header edit Set-Cookie "(mellon[^=]*=[^;]*)" "$1; SameSite=None; Secure"
+
+    ServerName https://{{ inventory_hostname }}
+
+    ProxyPreserveHost On
+
+    AllowEncodedSlashes On
+
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Host "%{Host}s"
+    SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
+
+    ProxyPass /de/ http://127.0.0.1:{{ exist_http_port }}/exist/apps/{{ teipublisher_app_name }}/ nocanon
+
+    ProxyPassReverse /de/ http://127.0.0.1:{{ exist_http_port }}/
+
+    ErrorLog ${APACHE_LOG_DIR}/tei-proxy-error.log
+    CustomLog ${APACHE_LOG_DIR}/tei-proxy-access.log combined
+
+</VirtualHost>

@@ -17,9 +17,16 @@ http:
       rule: >
         Host(`{{ inventory_hostname }}`)
         && PathPrefix(`{{ teipublisher_context_path }}`)
-      middlewares:
-        - tei-rewrite
-        - exist-cookie-path
+      #middlewares:
+      #  - tei-rewrite
+      #  - exist-cookie-path
+      service: tei-publisher
+      tls:
+        certResolver: letsencrypt
+    tei-publisher-mellon:
+      rule: >
+        Host(`{{ inventory_hostname }}`)
+        && PathPrefix(`/mellon`)
       service: tei-publisher
       tls:
         certResolver: letsencrypt
@@ -28,4 +35,4 @@ http:
     tei-publisher:
       loadBalancer:
         servers:
-          - url: "http://127.0.0.1:{{ exist_http_port }}"
+          - url: "http://127.0.0.1:{{ apache_port }}"

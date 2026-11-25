@@ -1,0 +1,69 @@
+########
+# Stop exist-db and REMOVE ALL CURRENT DATA
+######
+---
+- name: Prepare eXist-db for clean restore
+  hosts: exist_servers
+  become: true
+
+  vars_files:
+    - ../vars.yml
+  vars:
+    confirm_clean_restore: false
+
+  tasks:
+
+    - name: Abort unless clean restore is explicitly confirmed
+      ansible.builtin.fail:
+        msg: >
+          This operation deletes all existing eXist-db data files.
+          Set confirm_clean_restore=true to proceed.
+      when: not confirm_clean_restore
+
+    - name: Stop eXist-db service
+      ansible.builtin.service:
+        name: existdb
+        state: stopped
+
+    - name: Find all .dbx files
+      ansible.builtin.find:
+        paths: "{{ exist_datapath }}"
+        patterns: "*.dbx"
+        recurse: no
+      register: dbx_files
+
+    - name: Find all .lck files
+      ansible.builtin.find:
+        paths: "{{ exist_datapath }}"
+        patterns: "*.lck"
+        recurse: no
+      register: lck_files
+
+    - name: Find all .log files
+      ansible.builtin.find:
+        paths: "{{ exist_datapath }}"
+        patterns: "*.log"
+        recurse: no
+      register: log_files
+
+    - name: Remove database files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: >-
+        {{
+          dbx_files.files +
+          lck_files.files +
+          log_files.files
+        }}
+
+    - name: Start eXist-db service
+      ansible.builtin.service:
+        name: existdb
+        state: started
+
+    - name: Wait for eXist-db to become available
+      ansible.builtin.wait_for:
+        port: "{{ exist_http_port }}"
+        host: 127.0.0.1
+        timeout: 120

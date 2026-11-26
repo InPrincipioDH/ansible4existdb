@@ -10,7 +10,7 @@
 
   tasks:
   - name: check if playbook should run
-    when: saml_enabled is defined and saml_enabled != "" and keycloak_url defined and keycloak_url != ""
+    when: not saml_enabled or keycloak_url | length == 0
     meta: end_play
 
   - name: Create SAML client in keycloak realm.

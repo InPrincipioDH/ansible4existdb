@@ -18,4 +18,4 @@ sp_fallback: "https://{{ inventory_hostname }}{{ teipublisher_context_path }}"
 apache_port: 8081
 mellon_entity: "https://{{ inventory_hostname }}{{ teipublisher_context_path }}"
 mellon_endpoint: "https://{{ inventory_hostname }}/mellon"
-idp_saml_xml_url:
+idp_saml_xml_url: # for example what keycloak provides at realms/<realm>/protocol/saml/descriptor
